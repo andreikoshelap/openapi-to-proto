@@ -1,0 +1,239 @@
+  openapi: 3.0.3
+  info:
+    title: Gateway API
+    version: "1.0"
+  servers:
+    - url: http://localhost:8081
+      description: Local development server
+
+  paths:
+    /api/v1/receipt:
+      post:
+        summary: Proxy POST receipt
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        responses:
+          "200":
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: true
+          "502":
+            description: Bad Gateway
+            content:
+              text/plain:
+                schema:
+                  type: string
+
+    /api/v1/receipt/{id}:
+      get:
+        summary: Proxy GET receipt by ID
+        parameters:
+          - name: id
+            in: path
+            required: true
+            schema:
+              type: string
+        responses:
+          "200":
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: true
+          "502":
+            description: Bad Gateway
+            content:
+              text/plain:
+                schema:
+                  type: string
+
+    /api/v1/products/{productId}/availability:
+      get:
+        summary: Check product availability in warehouse
+        description: Returns the available stock for a given product.
+        parameters:
+          - name: productId
+            in: path
+            required: true
+            schema:
+              type: string
+        responses:
+          "200":
+            description: Available quantity
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ProductAvailability'
+          "404":
+            description: Product not found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+
+    /api/v1/stores:
+      get:
+        summary: List all store locations
+        description: Returns a list of all trading points (stores).
+        responses:
+          "200":
+            description: Array of stores
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Store'
+          "500":
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+
+    /api/v1/stores/{storeId}:
+      get:
+        summary: Get details of a single store
+        description: Returns address and contact info for the specified store.
+        parameters:
+          - name: storeId
+            in: path
+            required: true
+            schema:
+              type: string
+        responses:
+          "200":
+            description: Store details
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Store'
+          "404":
+            description: Store not found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ErrorResponse'
+
+  components:
+    schemas:
+      Receipt:
+        type: object
+        required:
+          - receiptNumber
+          - issuedAt
+          - storeId
+          - subtotal
+          - taxAmount
+          - totalAmount
+          - paymentMethod
+          - items
+        properties:
+          receiptNumber:
+            type: string
+          issuedAt:
+            type: string
+            format: date-time
+          storeId:
+            type: string
+          cashierId:
+            type: string
+          callbackUrl:
+            type: string
+            format: uri
+          subtotal:
+            type: number
+            format: double
+          taxAmount:
+            type: number
+            format: double
+          discountAmount:
+            type: number
+            format: double
+          totalAmount:
+            type: number
+            format: double
+          paymentMethod:
+            type: string
+            enum: [CASH, CREDIT_CARD, DEBIT_CARD, MOBILE_PAY, GIFT_CARD, OTHER]
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReceiptItem'
+
+      ReceiptItem:
+        type: object
+        required:
+          - productCode
+          - productName
+          - quantity
+          - unitPrice
+          - lineTotal
+        properties:
+          productCode:
+            type: string
+          productName:
+            type: string
+          quantity:
+            type: integer
+            format: int32
+          unitPrice:
+            type: number
+            format: double
+          lineTotal:
+            type: number
+            format: double
+          lineDiscount:
+            type: number
+            format: double
+
+      ProductAvailability:
+        type: object
+        properties:
+          productId:
+            type: string
+          availableQuantity:
+            type: integer
+            format: int32
+          warehouseLocation:
+            type: string
+        required:
+          - productId
+          - availableQuantity
+
+      Store:
+        type: object
+        properties:
+          storeId:
+            type: string
+          name:
+            type: string
+          address:
+            type: string
+          phone:
+            type: string
+          openingHours:
+            type: string
+        required:
+          - storeId
+          - name
+          - address
+
+      ErrorResponse:
+        type: object
+        properties:
+          code:
+            type: integer
+          message:
+            type: string
+        required:
+          - code
+          - message
